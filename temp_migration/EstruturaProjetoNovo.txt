@@ -1,0 +1,48 @@
+empresaMixBI/
+├── pages/
+│   ├── 1_comercial.py
+│   ├── 2_financeiro.py
+│   └── 3_rh.py
+├── dashboards_comercial/
+│   ├── __init__.py
+│   ├── faturamento.py
+│   ├── dataset.py
+│   ├── vendedores.py
+│   ├── clientes.py
+│   ├── budget.py
+│   └── trends.py
+├── dashboards_financeiro/
+│   └── __init__.py
+├── dashboards_rh/
+│   └── __init__.py
+├── utils/
+│   ├── comercial/
+│   │   ├── __init__.py
+│   │   ├── imports.py
+│   │   ├── data_processing.py
+│   │   └── visualizations.py
+│   ├── financeiro/
+│   │   ├── __init__.py
+│   │   ├── imports.py
+│   │   ├── data_processing.py
+│   │   └── visualizations.py
+│   ├── rh/
+│   │   ├── __init__.py
+│   │   ├── imports.py
+│   │   ├── data_processing.py
+│   │   └── visualizations.py
+│   └── common/
+│       ├── __init__.py
+│       ├── imports.py
+│       ├── data_processing.py
+│       └── visualizations.py
+└── config/
+    ├── __init__.py
+    ├── comercial/
+    │   └── settings.py
+    ├── financeiro/
+    │   └── settings.py
+    ├── rh/
+    │   └── settings.py
+    └── common/
+        └── settings.py

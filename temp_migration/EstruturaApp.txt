@@ -1,0 +1,10 @@
+Estrutura do projeto:
+
+empresamixBI/
+│
+├── src/          # Código fonte do projeto
+├── data/         # Arquivos de dados
+├── config/       # Arquivos de configuração
+├── logs/         # Arquivos de log
+├── tests/        # Testes unitários
+└── venv/         # Ambiente virtual (já existe)

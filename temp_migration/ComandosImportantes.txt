@@ -1,0 +1,30 @@
+--- Fazer upload no github ---
+git init
+git add .
+git commit -m "Etapa 15: Corrigidos os erros no dashboard dataset. Configurado o gráfico em Vendedores"
+git remote add origin https://github.com/Brodinho/empresamixBI.git
+git branch -M main
+git push -u origin main
+
+--- Instalar todas as bibliotecas necessárias, caso seja necessário restaurar a aplicação ---
+# Para criar (caso não exista, o arquivo requirements e listar todas as bibliotecas do projeto
+pip freeze > requirements.txt
+
+--- Para atualizar todas as blibliotecas ---
+# Primeiro, instale o pip-tools
+pip install pip-tools
+
+# Depois atualize todas as bibliotecas
+pip install -r requirements.txt --upgrade
+
+--- Para ativar o ambiente virtual
+.\venv\Scripts\activate
+
+1. Métricas Principais (Cards)
+2. Evolução Temporal
+3. Análise de Performance
+4. Análise Regional
+5. Análise de Produtos
+6. Análise de Conversão
+7. Comparativo entre Períodos
+8. 

@@ -1,0 +1,23 @@
+﻿# Bibliotecas principais
+pandas==2.0.3
+numpy==1.24.4
+matplotlib==3.7.5
+plotly==5.24.1
+streamlit==1.29.0
+
+# Banco de dados
+sqlalchemy==2.0.36
+pymysql==1.1.0
+python-dotenv==1.0.1
+
+# IA e Processamento
+langchain==0.0.27
+openai==1.58.1
+
+# Utilitários
+python-dateutil==2.9.0.post0
+pytz==2024.2
+tqdm==4.67.1
+
+# Scikit-learn
+scikit-learn
