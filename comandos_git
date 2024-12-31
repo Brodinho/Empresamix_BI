@@ -1,0 +1,4 @@
+git status
+git add .
+git commit -m "Texto da mensagem aqui"
+git push origin main
