@@ -1,0 +1,55 @@
+﻿EMPRESAMIXBI/
+├── .streamlit/
+│   └── config.toml
+│       # Configurações do tema Streamlit
+│
+├── assets/
+│   # Arquivos estáticos (imagens, etc)
+│
+├── config/
+│   ├── __init__.py
+│   └── settings.py
+│       # Configurações da aplicação e banco de dados
+│
+├── dashboards_comercial/
+│   └── __init__.py
+│       # Dashboards da área comercial
+│
+├── dashboards_financeiro/
+│   └── __init__.py
+│       # Dashboards da área financeira
+│
+├── dashboards_rh/
+│   └── __init__.py
+│       # Dashboards de RH
+│
+├── pages/
+│   # Páginas do Streamlit
+│
+├── src/
+│   ├── __init__.py
+│   ├── analysis/
+│   │   └── __init__.py
+│   ├── api/
+│   │   └── __init__.py
+│   ├── database/
+│   │   └── __init__.py
+│   ├── etl/
+│   │   └── __init__.py
+│   ├── reports/
+│   │   └── __init__.py
+│   ├── utils/
+│   │   └── __init__.py
+│   └── main.py
+│
+├── styles/
+│   # Arquivos de estilo
+│
+├── utils/
+│   ├── common/
+│   │   └── __init__.py
+│   └── __init__.py
+│
+├── .gitignore
+├── Home.py
+└── requirements.txt

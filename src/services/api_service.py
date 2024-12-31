@@ -1,71 +1,39 @@
 import requests
 import pandas as pd
-from datetime import datetime
-import streamlit as st
+from utils.constants import API_CONFIG, DATA_CONFIG, COLUNAS_RENAME
 
 def carregar_dados_faturamento():
     """
-    Carrega dados de faturamento da API
+    Carrega dados de faturamento da API já filtrados para os últimos 5 anos
     """
     try:
-        url = "http://tecnolife.empresamix.info:8077/POWERBI/"
-        params = {
-            "CLIENTE": "TECNOLIFE",
-            "ID": "XIOPMANA", 
-            "VIEW": "CUBO_FATURAMENTO"
-        }
-        
-        # Debug: Mostrar URL completa
-        st.write("URL da API:", url)
-        st.write("Parâmetros:", params)
-        
-        response = requests.get(url, params=params)
-        st.write("Status da resposta:", response.status_code)
+        response = requests.get(API_CONFIG["URL"], params=API_CONFIG["PARAMS"])
         response.raise_for_status()
         
         # Converte para DataFrame
         df = pd.DataFrame(response.json())
-        st.write("DataFrame criado com sucesso")
-        st.write("Formato:", df.shape)
-        st.write("Colunas:", df.columns.tolist())
         
-        # Converter datas com tratamento de erros
-        def converter_data(data_str):
+        # Função para converter datas com tratamento de erros
+        def converter_data_segura(data_str):
             try:
-                # Tentar converter a data
                 return pd.to_datetime(data_str, format='%Y-%m-%d', errors='coerce')
             except:
-                return pd.NaT
+                return pd.to_datetime(data_str, errors='coerce')
         
-        # Converter as colunas de data
-        df['data'] = df['data'].apply(converter_data)
-        df['emissao'] = df['emissao'].apply(converter_data)
-        
-        # Remover linhas com datas inválidas
+        # Converte data com tratamento de erros
+        df['data'] = df['data'].apply(converter_data_segura)
         df = df.dropna(subset=['data'])
         
-        # Debug: Mostrar range de datas
-        st.write("Range de datas:", 
-                f"De: {df['data'].min()}", 
-                f"Até: {df['data'].max()}")
+        # Filtra os dados para os últimos 5 anos
+        df = df[df['data'] >= DATA_CONFIG["DATA_INICIAL"]]
         
-        # Renomear colunas
-        colunas = {
-            'valorfaturado': 'valor',
-            'valorNota': 'valor_nota',
-            'grupo': 'grupo',
-            'subGrupo': 'categoria',
-            'uf': 'estado'
-        }
-        df = df.rename(columns=colunas)
-        
-        # Debug: Mostrar algumas estatísticas
-        st.write("Total de registros após limpeza:", len(df))
-        st.write("Total faturado:", df['valor'].sum())
+        # Renomeia colunas para padronizar
+        df = df.rename(columns=COLUNAS_RENAME)
         
         return df
         
     except Exception as e:
-        st.error(f"Erro ao carregar dados: {str(e)}")
-        st.write("Traceback completo:", e.__traceback__)
+        print(f"Erro ao carregar dados: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return None 
