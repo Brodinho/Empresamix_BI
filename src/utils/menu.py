@@ -1,16 +1,19 @@
 ﻿import streamlit as st
 
 def show_menu():
-    st.markdown("### Menu Principal")
+    """Exibe o menu lateral"""
+    st.sidebar.title("Menu")
     
-    if st.button("📈 Dashboard Comercial", key="comercial", use_container_width=True):
-        st.switch_page("pages/1_Comercial.py")
+    if st.sidebar.button("Dashboard Comercial"):
+        st.session_state.current_page = "comercial"
+        st.experimental_set_query_params(page="comercial")
+        st.rerun()
         
-    if st.button("💰 Dashboard Financeiro", key="financeiro", use_container_width=True):
-        st.switch_page("pages/2_Financeiro.py")
-    
-    st.markdown("---")
-    
-    if st.button("🚪 Logout", key="logout", use_container_width=True):
-        st.session_state["authenticated"] = False
+    if st.sidebar.button("Dashboard Financeiro"):
+        st.session_state.current_page = "financeiro"
+        st.experimental_set_query_params(page="financeiro")
+        st.rerun()
+        
+    if st.sidebar.button("Logout"):
+        st.session_state.authenticated = False
         st.rerun()
