@@ -31,6 +31,15 @@ def criar_grafico_linha_mensal(df_filtrado):
         for ano in sorted(df_mensal['ano'].unique()):
             dados_ano = df_mensal[df_mensal['ano'] == ano].sort_values('mes')
             
+            # Formatar valores para o hover
+            valores_formatados = [formatar_moeda(valor) for valor in dados_ano['valor']]
+            
+            # Mapear números dos meses para nomes em português
+            meses_pt = {
+                1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
+                7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
+            }
+            
             fig.add_trace(go.Scatter(
                 x=dados_ano['mes'],
                 y=dados_ano['valor'],
@@ -39,9 +48,12 @@ def criar_grafico_linha_mensal(df_filtrado):
                 line=dict(width=2),
                 hovertemplate=(
                     f'Ano: {ano}<br>' +
-                    'Mês: %{x}<br>' +
-                    'Valor: R$ %{y:,.2f}<extra></extra>'
-                )
+                    'Mês: %{customdata}<br>' +
+                    'Valor: %{text}<br>' +
+                    '<extra></extra>'
+                ),
+                text=valores_formatados,
+                customdata=[meses_pt[m] for m in dados_ano['mes']]  # Meses em português
             ))
         
         # Configurar layout
@@ -55,7 +67,7 @@ def criar_grafico_linha_mensal(df_filtrado):
                 font=dict(size=20)
             ),
             xaxis=dict(
-                title='Mês',
+                title=None,  # Remove título do eixo x
                 ticktext=['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
                          'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
                 tickvals=list(range(1, 13)),
@@ -64,7 +76,7 @@ def criar_grafico_linha_mensal(df_filtrado):
                 zeroline=True
             ),
             yaxis=dict(
-                title='Valor Faturado',
+                title=None,  # Remove título do eixo y
                 tickformat='',
                 ticksuffix=' Milhões',
                 tickvals=list(range(0, 60000000, 10000000)),
@@ -80,7 +92,9 @@ def criar_grafico_linha_mensal(df_filtrado):
                 yanchor='top',
                 y=0.99,
                 xanchor='right',
-                x=0.99
+                x=0.99,
+                itemclick=False,
+                itemdoubleclick=False
             ),
             hovermode='x unified'
         )
@@ -254,7 +268,7 @@ def criar_grafico_faturamento_estado(df: pd.DataFrame) -> go.Figure:
         
         fig.update_layout(
             title=dict(
-                text='Faturamento por Estado',
+                text='Faturamento por Estado (Top 5)',
                 font=dict(color="white", size=20),
                 y=0.9,  # ajusta a posição vertical do título
                 x=0.5,  # centraliza o título
