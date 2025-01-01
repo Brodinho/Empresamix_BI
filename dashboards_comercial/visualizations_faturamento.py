@@ -289,4 +289,77 @@ def criar_grafico_faturamento_estado(df: pd.DataFrame) -> go.Figure:
         print(f"Erro ao criar gráfico de faturamento por estado: {str(e)}")
         return go.Figure()
 
+def criar_grafico_faturamento_categoria(df: pd.DataFrame) -> go.Figure:
+    """
+    Cria um gráfico de barras horizontais com as top 5 categorias por faturamento
+    """
+    try:
+        # Agrupar por categoria e somar faturamento
+        df_cat = df.groupby('categoria')['valor'].sum().reset_index()
+        
+        # Pegar apenas top 5 categorias
+        top_5_cat = df_cat.nlargest(5, 'valor')
+        
+        # Criar gráfico
+        fig = go.Figure()
+        
+        # Formatar valores usando formatar_moeda
+        valores_formatados = [formatar_moeda(valor) for valor in top_5_cat['valor']]
+        
+        fig.add_trace(go.Bar(
+            x=top_5_cat['valor'],
+            y=top_5_cat['categoria'],
+            orientation='h',
+            text=valores_formatados,
+            textposition='auto',
+            marker_color='#4169E1',
+            hovertemplate="<b>%{y}</b><br>" +
+                         "Faturamento: %{text}<br>" +
+                         "<extra></extra>"
+        ))
+        
+        # Calcular o valor máximo para definir o range do eixo x
+        max_valor = top_5_cat['valor'].max()
+        max_milhoes = math.ceil(max_valor / 1_000_000)
+        
+        # Criar lista de valores para o eixo x
+        valores_eixo = list(range(0, max_milhoes + 1, max(1, max_milhoes // 5)))
+        
+        fig.update_layout(
+            title=dict(
+                text='Faturamento por Categoria (Top 5)',
+                font=dict(color="white", size=20),
+                y=0.9,
+                x=0.5,
+                xanchor='center',
+                yanchor='top'
+            ),
+            xaxis=dict(
+                title=None,
+                ticktext=[formatar_moeda(x * 1_000_000) for x in valores_eixo],
+                tickvals=[x * 1_000_000 for x in valores_eixo],
+                tickmode='array'
+            ),
+            yaxis=dict(
+                title='',
+                autorange="reversed"
+            ),
+            hovermode='x unified',
+            hoverlabel=dict(
+                bgcolor="rgba(0,0,0,0.8)",
+                font_size=14
+            ),
+            showlegend=False,
+            height=400,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white")
+        )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Erro ao criar gráfico de faturamento por categoria: {str(e)}")
+        return go.Figure()
+
 # Aqui viriam as outras funções de gráficos específicos do dashboard de faturamento 

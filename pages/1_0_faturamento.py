@@ -4,7 +4,8 @@ from dashboards_comercial.visualizations_faturamento import (
     criar_grafico_linha_mensal,
     criar_mapa_faturamento,
     criar_grafico_categorias,
-    criar_grafico_faturamento_estado
+    criar_grafico_faturamento_estado,
+    criar_grafico_faturamento_categoria
 )
 
 def show_faturamento():
@@ -35,27 +36,24 @@ def show_faturamento():
         if fig_map:
             st.plotly_chart(fig_map, use_container_width=True)
         
-        # Criar duas colunas para os demais gráficos
+        # Layout dos gráficos usando colunas
         col1, col2 = st.columns(2)
         
-        # Gráfico de linha na primeira coluna
         with col1:
-            st.subheader("Evolução Mensal do Faturamento")
-            fig_line = criar_grafico_linha_mensal(df_filtrado)
-            if fig_line:
-                st.plotly_chart(fig_line, use_container_width=True)
+            # Gráfico de Evolução Mensal
+            fig_evolucao = criar_grafico_linha_mensal(df_filtrado)
+            st.plotly_chart(fig_evolucao, use_container_width=True)
         
-        # Gráfico de categorias na segunda coluna
         with col2:
-            st.subheader("Faturamento por Categoria")
-            fig_cat = criar_grafico_categorias(df_filtrado)
-            if fig_cat:
-                st.plotly_chart(fig_cat, use_container_width=True)
+            # Gráfico de Categorias - usando a abordagem que remove o título extra
+            _, subcol, _ = st.columns([1, 8, 1])
+            with subcol:
+                fig_categorias = criar_grafico_faturamento_categoria(df_filtrado)
+                st.plotly_chart(fig_categorias, use_container_width=True)
         
-        # Gráfico de estados
-        _, col, _ = st.columns([1, 8, 1])
-        with col:
-            # Criar e exibir o gráfico
+        # Gráfico de Estados - já ajustado anteriormente
+        _, col_estados, _ = st.columns([1, 8, 1])
+        with col_estados:
             fig_estados = criar_grafico_faturamento_estado(df_filtrado)
             st.plotly_chart(fig_estados, use_container_width=True)
 
