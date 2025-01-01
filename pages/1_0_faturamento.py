@@ -4,7 +4,7 @@ from dashboards_comercial.visualizations_faturamento import (
     criar_grafico_linha_mensal,
     criar_mapa_faturamento,
     criar_grafico_categorias,
-    criar_grafico_estados
+    criar_grafico_faturamento_estado
 )
 
 def show_faturamento():
@@ -53,12 +53,11 @@ def show_faturamento():
                 st.plotly_chart(fig_cat, use_container_width=True)
         
         # Gráfico de estados
-        col3, col4 = st.columns(2)
-        with col3:
-            st.subheader("Faturamento por Estado")
-            fig_estados = criar_grafico_estados(df_filtrado)
-            if fig_estados:
-                st.plotly_chart(fig_estados, use_container_width=True)
+        _, col, _ = st.columns([1, 8, 1])
+        with col:
+            # Criar e exibir o gráfico
+            fig_estados = criar_grafico_faturamento_estado(df_filtrado)
+            st.plotly_chart(fig_estados, use_container_width=True)
 
 # Executar o dashboard
 show_faturamento()

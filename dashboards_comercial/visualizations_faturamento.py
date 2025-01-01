@@ -7,7 +7,12 @@ from utils.constants import (
     UF_TO_ISO, 
     COORDENADAS_ESTADOS
 )
+from utils.formatters import (
+    NOMES_ESTADOS,
+    formatar_moeda
+)
 from src.analysis.faturamento_analysis import preparar_dados_mapa
+import math
 
 def criar_grafico_linha_mensal(df_filtrado):
     """
@@ -193,44 +198,95 @@ def criar_grafico_categorias(df_filtrado):
         print(f"Erro ao criar gráfico de categorias: {str(e)}")
         return None
 
-def criar_grafico_estados(df_filtrado):
+def criar_grafico_faturamento_estado(df: pd.DataFrame) -> go.Figure:
     """
-    Cria o gráfico de barras por estado
+    Cria um gráfico de barras horizontais com os top 5 estados/países por faturamento
     """
     try:
-        # Agrupa dados por estado
-        df_estados = df_filtrado.groupby('estado')['valor'].sum().reset_index()
-        df_estados = df_estados.sort_values('valor', ascending=True)
+        # Separar dados do Brasil e exterior
+        df_brasil = df[df['estado'] != 'EX'].copy()
+        df_exterior = df[df['estado'] == 'EX'].copy()
         
-        # Criar figura
+        # Processar dados do Brasil
+        df_brasil_fat = df_brasil.groupby('estado')['valor'].sum().reset_index()
+        df_brasil_fat['Nome_Local'] = df_brasil_fat['estado'].map(NOMES_ESTADOS)
+        
+        # Processar dados do exterior
+        if not df_exterior.empty:
+            df_exterior_fat = df_exterior.groupby('pais')['valor'].sum().reset_index()
+            df_exterior_fat['Nome_Local'] = df_exterior_fat['pais']
+            
+            # Combinar dados
+            df_fat_total = pd.concat([
+                df_brasil_fat[['Nome_Local', 'valor']],
+                df_exterior_fat[['Nome_Local', 'valor']]
+            ])
+        else:
+            df_fat_total = df_brasil_fat[['Nome_Local', 'valor']]
+        
+        # Pegar top 5
+        top_5 = df_fat_total.nlargest(5, 'valor')
+        
+        # Criar gráfico
         fig = go.Figure()
         
+        # Formatar valores usando formatar_moeda
+        valores_formatados = [formatar_moeda(valor) for valor in top_5['valor']]
+        
         fig.add_trace(go.Bar(
-            x=df_estados['valor'],
-            y=df_estados['estado'],
+            x=top_5['valor'],
+            y=top_5['Nome_Local'],
             orientation='h',
-            marker_color=GRAPH_CONFIG['COLORS']['bar']
+            text=valores_formatados,
+            textposition='auto',
+            marker_color='#4169E1',
+            hovertemplate="<b>%{y}</b><br>" +
+                         "Faturamento: %{text}<br>" +
+                         "<extra></extra>"
         ))
         
-        # Configurar layout
+        # Calcular o valor máximo para definir o range do eixo x
+        max_valor = top_5['valor'].max()
+        max_milhoes = math.ceil(max_valor / 1_000_000)
+        
+        # Criar lista de valores para o eixo x
+        valores_eixo = list(range(0, max_milhoes + 1, max(1, max_milhoes // 5)))
+        
         fig.update_layout(
             title=dict(
                 text='Faturamento por Estado',
-                x=0.5,
-                y=0.95,
+                font=dict(color="white", size=20),
+                y=0.9,  # ajusta a posição vertical do título
+                x=0.5,  # centraliza o título
                 xanchor='center',
-                yanchor='top',
-                font=dict(size=20)
+                yanchor='top'
             ),
-            xaxis_title='Valor Faturado (R$)',
-            yaxis_title='Estado',
-            xaxis=dict(tickformat=',.2f'),
-            **GRAPH_CONFIG['LAYOUT']
+            xaxis=dict(
+                title=None,
+                ticktext=[formatar_moeda(x * 1_000_000) for x in valores_eixo],
+                tickvals=[x * 1_000_000 for x in valores_eixo],
+                tickmode='array'
+            ),
+            yaxis=dict(
+                title='',
+                autorange="reversed"  # Inverte a ordem para o maior valor aparecer no topo
+            ),
+            hovermode='x unified',
+            hoverlabel=dict(
+                bgcolor="rgba(0,0,0,0.8)",
+                font_size=14
+            ),
+            showlegend=False,
+            height=400,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white")
         )
         
         return fig
+        
     except Exception as e:
-        print(f"Erro ao criar gráfico de estados: {str(e)}")
-        return None
+        print(f"Erro ao criar gráfico de faturamento por estado: {str(e)}")
+        return go.Figure()
 
 # Aqui viriam as outras funções de gráficos específicos do dashboard de faturamento 
