@@ -1,6 +1,22 @@
 ﻿import streamlit as st
-st.set_page_config(layout="wide", page_title="Faturamento")
+from src.utils.menu import show_menu
 
+# Configuração inicial da página
+st.set_page_config(
+    page_title="Faturamento",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Definir página atual
+st.session_state['current_page'] = '/0_faturamento'
+
+# Mostrar menu
+with st.sidebar:
+    show_menu()
+
+# Depois importamos o resto
 from dashboards_comercial.visualizations_faturamento import (
     criar_grafico_linha_mensal,
     criar_mapa_faturamento,
@@ -45,20 +61,18 @@ def show_faturamento():
     # Título do mapa
     st.markdown("<h3 style='text-align: center; color: white;'>Distribuição Geográfica do Faturamento</h3>", unsafe_allow_html=True)
     
-    # Mapa de faturamento - ocupando toda a largura
+    # Mapa de faturamento
     fig_mapa = criar_mapa_faturamento(df_filtrado)
     st.plotly_chart(fig_mapa, use_container_width=True)
 
-    # Layout dos gráficos usando colunas sem espaçamento
+    # Layout dos gráficos usando colunas
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        # Gráfico de Evolução Mensal
         fig_evolucao = criar_grafico_linha_mensal(df_filtrado)
         st.plotly_chart(fig_evolucao, use_container_width=True)
 
     with col2:
-        # Gráfico de Categorias
         fig_categorias = criar_grafico_faturamento_categoria(df_filtrado)
         st.plotly_chart(fig_categorias, use_container_width=True)
 

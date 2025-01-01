@@ -1,35 +1,99 @@
 ﻿import streamlit as st
 
 def show_menu():
-    """Exibe o menu lateral"""
-    st.sidebar.title("Menu")
+    """
+    Função unificada para mostrar o menu em todas as páginas
+    """
+    st.markdown("""
+        <style>
+            /* Remove elementos padrão */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            [data-testid="stSidebarNav"] {display: none !important;}
+            
+            /* Estilo do menu lateral */
+            section[data-testid="stSidebar"] {
+                background-color: #1a1a1a !important;
+                width: 250px !important;
+            }
+            
+            /* Título do Menu */
+            .menu-title {
+                color: white !important;
+                font-size: 24px !important;
+                margin-bottom: 20px !important;
+            }
+            
+            /* Botões do menu */
+            .menu-button {
+                background-color: transparent !important;
+                color: white !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 4px !important;
+                padding: 8px 16px !important;
+                margin: 4px 0 !important;
+                width: 100% !important;
+                text-align: left !important;
+                cursor: pointer !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            /* Hover dos botões */
+            .menu-button:hover {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+                border-color: rgba(255, 255, 255, 0.2) !important;
+            }
+            
+            /* Botão ativo */
+            .menu-button.active {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+                border-color: rgba(255, 255, 255, 0.2) !important;
+            }
+            
+            /* Seções do menu */
+            .menu-section {
+                color: #888888 !important;
+                font-size: 12px !important;
+                text-transform: uppercase !important;
+                margin: 20px 0 10px !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
     
-    # Home
-    if st.sidebar.button("🏠 Home"):
-        st.switch_page("Home.py")
+    st.markdown('<h1 class="menu-title">Menu</h1>', unsafe_allow_html=True)
+    
+    # Botão Home
+    st.markdown("""
+        <a href="/" style="text-decoration: none;">
+            <button class="menu-button">🏠 Home</button>
+        </a>
+    """, unsafe_allow_html=True)
     
     # Seção Comercial
-    st.sidebar.markdown("### 📊 Comercial")
-    if st.sidebar.button("📈 Faturamento", key="btn_faturamento"):
-        st.switch_page("pages/1_0_faturamento.py")
-    if st.sidebar.button("📊 Dataset", key="btn_dataset"):
-        st.switch_page("pages/1_1_dataset.py")
-    if st.sidebar.button("👥 Vendedores", key="btn_vendedores"):
-        st.switch_page("pages/1_2_vendedores.py")
-    if st.sidebar.button("🏢 Clientes", key="btn_clientes"):
-        st.switch_page("pages/1_3_clientes.py")
-    if st.sidebar.button("💰 Budget", key="btn_budget"):
-        st.switch_page("pages/1_4_budget.py")
-    if st.sidebar.button("📉 Trends", key="btn_trends"):
-        st.switch_page("pages/1_5_trends.py")
+    st.markdown('<div class="menu-section">📊 Comercial</div>', unsafe_allow_html=True)
     
-    # Seção Financeira
-    st.sidebar.markdown("### 💰 Financeiro")
-    if st.sidebar.button("📊 Dashboard Financeiro", key="btn_financeiro"):
-        st.switch_page("pages/2_financeiro.py")
+    # Itens do menu comercial
+    menu_items = [
+        ('📈', 'Faturamento', '/0_faturamento'),
+        ('📊', 'Dataset', '/1_dataset'),
+        ('👥', 'Vendedores', '/2_vendedores'),
+        ('🏢', 'Clientes', '/3_clientes'),
+        ('💰', 'Budget', '/4_budget'),
+        ('📈', 'Trends', '/5_trends')
+    ]
     
-    # Logout
-    st.sidebar.markdown("---")
-    if st.sidebar.button("❌ Logout", key="btn_logout"):
-        st.session_state.authenticated = False
-        st.rerun()
+    # Determinar página atual
+    current_page = st.session_state.get('current_page', '')
+    
+    for icon, label, url in menu_items:
+        active = 'active' if url in current_page else ''
+        st.markdown(f"""
+            <a href="{url}" style="text-decoration: none;">
+                <button class="menu-button {active}">
+                    {icon} {label}
+                </button>
+            </a>
+        """, unsafe_allow_html=True)
+    
+    # Seção Financeiro
+    st.markdown('<div class="menu-section">💰 Financeiro</div>', unsafe_allow_html=True)
