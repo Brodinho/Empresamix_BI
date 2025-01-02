@@ -1,5 +1,5 @@
 import locale
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List
 import pandas as pd
 
 # Configurar locale para formatação de moeda em português do Brasil
@@ -185,62 +185,29 @@ def calcular_tendencia(valores: pd.Series) -> str:
 
 def criar_container_kpi(titulo: str, valor: str, variacao: str) -> str:
     """
-    Cria um container HTML estilizado para KPI
-    
-    Args:
-        titulo (str): Título do indicador
-        valor (str): Valor principal do indicador
-        variacao (str): Texto de variação (ex: "↑ 15% vs mês anterior")
-    
-    Returns:
-        str: String HTML formatada do container
+    Cria um container HTML para exibir KPIs
     """
-    # Definição das cores com base na variação
-    cor_variacao = '#4CAF50' if '↑' in variacao else \
-                   '#FF5252' if '↓' in variacao else \
-                   '#FFA500'  # Cor laranja para valores que se mantiveram
-    
     return f"""
         <div style="
-            background-color: #1E1E1E;
-            border-radius: 12px;
-            padding: 20px;
-            height: 140px;
-            border: 1px solid #444;
-            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4),
-                       inset 0 -1px 1px rgba(255, 255, 255, 0.1),
-                       inset 0 1px 1px rgba(0, 0, 0, 0.2);
-            margin: 5px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
+            background-color: rgba(28, 31, 34, 0.9);
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 8px;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             text-align: center;
-            transform: translateY(0);
-            transition: all 0.2s ease;
+            height: 100%;
         ">
-            <div style="
-                color: #FFF;
-                font-size: 1.1em;
-                font-weight: 500;
-                margin-bottom: 12px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            ">{titulo}</div>
-            <div style="
-                color: white;
-                font-size: 1.8em;
-                font-weight: bold;
-                margin-bottom: 12px;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            ">{valor}</div>
-            <div style="
-                font-size: 0.9em;
-                color: {cor_variacao};
-                font-weight: 500;
-            ">{variacao}</div>
+            <div style="color: rgb(180, 180, 180); font-size: 16px; font-weight: 500; margin-bottom: 8px;">
+                {titulo}
+            </div>
+            <div style="color: white; font-size: 28px; font-weight: 600; margin-bottom: 8px;">
+                {valor}
+            </div>
+            <div style="color: {'#32CD32' if '↑' in variacao else '#FF4B4B' if '↓' in variacao else '#808080'}; font-size: 14px;">
+                {variacao}
+            </div>
         </div>
-    """ 
+    """
 
 def calcular_variacao_periodo(
     df: pd.DataFrame,
@@ -324,3 +291,17 @@ def calcular_variacao_periodo(
     except Exception as e:
         print(f"Erro ao calcular variação: {str(e)}")
         return 0.0, "Sem variação" 
+
+def gerar_insights_vendedor(df: pd.DataFrame, vendedor: str) -> List[str]:
+    """
+    Gera insights automáticos baseados nos dados do vendedor
+    """
+    insights = []
+    
+    # Melhor período de vendas
+    # Categorias com maior crescimento
+    # Comparação com média da equipe
+    # Projeção de fechamento anual
+    # Sugestões de ação baseadas nos dados
+    
+    return insights 

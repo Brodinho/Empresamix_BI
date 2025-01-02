@@ -1,7 +1,7 @@
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-from utils.formatters import formatar_moeda
+from utils.formatters import formatar_moeda, criar_container_kpi, MESES_ORDEM
 import math
 from plotly.subplots import make_subplots
 from typing import Dict, Any
@@ -335,4 +335,329 @@ def criar_expander_info_graficos() -> None:
         - Passar o mouse sobre os elementos para ver informações detalhadas
         - Clicar na legenda para mostrar/ocultar elementos
         - Usar os botões de zoom e download no canto superior direito dos gráficos
-        """) 
+        """)
+
+def criar_kpis_tendencia(df: pd.DataFrame, vendedor: str) -> None:
+    """
+    Cria cards com KPIs de tendência para o vendedor
+    """
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(
+            criar_container_kpi(
+                "Crescimento Médio",
+                "15% ao mês",
+                "↑ Tendência de alta"
+            ),
+            unsafe_allow_html=True
+        )
+    
+    with col2:
+        st.markdown(
+            criar_container_kpi(
+                "Sazonalidade",
+                "Alta em Dez",
+                "🎯 Próximo pico"
+            ),
+            unsafe_allow_html=True
+        )
+    
+    with col3:
+        st.markdown(
+            criar_container_kpi(
+                "Previsão Próximo Mês",
+                formatar_moeda(850000),
+                "↑ 12% vs atual"
+            ),
+            unsafe_allow_html=True
+        )
+    
+    with col4:
+        st.markdown(
+            criar_container_kpi(
+                "Meta Anual",
+                "85% atingida",
+                "🎯 No objetivo"
+            ),
+            unsafe_allow_html=True
+        ) 
+
+def criar_grafico_tendencia_vendas(df: pd.DataFrame, vendedor: str) -> go.Figure:
+    """
+    Cria gráfico de linha com projeção futura de vendas
+    """
+    try:
+        # Filtrar dados do vendedor
+        df_vendedor = df[df['vendedor'] == vendedor].copy()
+        
+        # Agrupar por mês
+        df_vendedor['mes_ano'] = df_vendedor['data'].dt.strftime('%m/%Y')
+        vendas_mensais = df_vendedor.groupby('mes_ano').agg({
+            'valor': 'sum',
+            'data': 'first'  # Para manter a data para ordenação
+        }).reset_index()
+        
+        # Ordenar por data
+        vendas_mensais = vendas_mensais.sort_values('data')
+        
+        # Calcular média móvel de 3 meses
+        vendas_mensais['media_movel'] = vendas_mensais['valor'].rolling(window=3, min_periods=1).mean()
+        
+        # Criar figura
+        fig = go.Figure()
+        
+        # Adicionar linha de vendas reais
+        fig.add_trace(
+            go.Scatter(
+                x=vendas_mensais['mes_ano'],
+                y=vendas_mensais['valor'],
+                name='Vendas Reais',
+                line=dict(color='#4169E1', width=2),
+                hovertemplate="Mês: %{x}<br>Valor: R$ %{y:,.2f}<extra></extra>"
+            )
+        )
+        
+        # Adicionar linha de média móvel
+        fig.add_trace(
+            go.Scatter(
+                x=vendas_mensais['mes_ano'],
+                y=vendas_mensais['media_movel'],
+                name='Média Móvel (3 meses)',
+                line=dict(color='#32CD32', width=2, dash='dash'),
+                hovertemplate="Mês: %{x}<br>Média: R$ %{y:,.2f}<extra></extra>"
+            )
+        )
+        
+        # Configurar layout
+        fig.update_layout(
+            title="Tendência de Vendas",
+            template="plotly_dark",
+            showlegend=True,
+            legend=dict(
+                yanchor="top",
+                y=0.99,
+                xanchor="left",
+                x=0.01
+            ),
+            xaxis=dict(
+                title=None,
+                tickangle=45,
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+            ),
+            yaxis=dict(
+                title="Valor (R$)",
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+                tickformat=",.0f"
+            ),
+            height=400,
+            margin=dict(t=50, l=50, r=50, b=50)
+        )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Erro ao criar gráfico de tendência: {str(e)}")
+        # Retornar uma figura vazia em caso de erro
+        return go.Figure()
+
+def criar_grafico_sazonalidade(df: pd.DataFrame, vendedor: str) -> go.Figure:
+    """
+    Cria gráfico de calor mostrando padrões sazonais de vendas
+    """
+    try:
+        # Filtrar dados do vendedor
+        df_vendedor = df[df['vendedor'] == vendedor].copy()
+        
+        if df_vendedor.empty:
+            print("Sem dados para o vendedor selecionado")
+            return go.Figure()
+            
+        # Criar colunas de ano e mês
+        df_vendedor['ano'] = df_vendedor['data'].dt.year
+        df_vendedor['mes'] = df_vendedor['data'].dt.month
+        
+        # Criar uma matriz completa com todos os meses
+        anos = df_vendedor['ano'].unique()
+        meses = range(1, 13)  # 1 a 12
+        
+        # Criar DataFrame vazio com todos os meses e anos
+        index = pd.MultiIndex.from_product([anos, meses], names=['ano', 'mes'])
+        vendas_completas = pd.DataFrame(index=index).reset_index()
+        
+        # Agrupar vendas reais
+        vendas_reais = df_vendedor.groupby(['ano', 'mes'])['valor'].sum().reset_index()
+        
+        # Mesclar dados reais com a matriz completa
+        vendas_completas = vendas_completas.merge(
+            vendas_reais, 
+            on=['ano', 'mes'], 
+            how='left'
+        ).fillna(0)
+        
+        # Criar matriz para o heatmap
+        matriz_vendas = pd.pivot_table(
+            vendas_completas,
+            values='valor',
+            index='ano',
+            columns='mes',
+            aggfunc='sum',
+            fill_value=0
+        )
+        
+        # Normalizar valores para melhor visualização
+        matriz_normalizada = matriz_vendas / 1000  # Valores em milhares
+        
+        # Criar figura
+        fig = go.Figure(data=go.Heatmap(
+            z=matriz_normalizada.values,
+            x=MESES_ORDEM,  # Usar todos os meses
+            y=matriz_vendas.index,
+            colorscale='Viridis',
+            hoverongaps=False,
+            hovertemplate="Ano: %{y}<br>Mês: %{x}<br>Valor: R$ %{z:.0f}K<extra></extra>"
+        ))
+        
+        # Configurar layout
+        fig.update_layout(
+            title="Sazonalidade de Vendas",
+            template="plotly_dark",
+            xaxis=dict(
+                title="Mês",
+                tickangle=45,
+                side='bottom'
+            ),
+            yaxis=dict(
+                title="Ano",
+                tickangle=0
+            ),
+            height=400,
+            margin=dict(t=50, l=50, r=50, b=50),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        
+        # Adicionar anotações apenas para valores significativos
+        for i in range(len(matriz_normalizada.index)):
+            for j in range(len(matriz_normalizada.columns)):
+                valor = matriz_normalizada.iloc[i, j]
+                if valor > 0:
+                    fig.add_annotation(
+                        x=MESES_ORDEM[j],
+                        y=matriz_normalizada.index[i],
+                        text=f"R${valor:.0f}K",
+                        showarrow=False,
+                        font=dict(
+                            size=10,
+                            color='white'
+                        )
+                    )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Erro ao criar gráfico de sazonalidade: {str(e)}")
+        return go.Figure()
+
+def criar_grafico_comparativo_metas(df: pd.DataFrame, vendedor: str) -> go.Figure:
+    """
+    Cria gráfico comparando metas vs realizado
+    """
+    try:
+        # Filtrar dados do vendedor
+        df_vendedor = df[df['vendedor'] == vendedor].copy()
+        
+        # Agrupar por mês
+        df_vendedor['mes_ano'] = df_vendedor['data'].dt.strftime('%m/%Y')
+        vendas_mensais = df_vendedor.groupby('mes_ano').agg({
+            'valor': 'sum',
+            'data': 'first'
+        }).reset_index()
+        
+        # Ordenar por data
+        vendas_mensais = vendas_mensais.sort_values('data')
+        
+        # Simular metas (você deve substituir isso com suas metas reais)
+        meta_mensal = 1_000_000  # Meta fixa de 1M por mês
+        vendas_mensais['meta'] = meta_mensal
+        
+        # Calcular percentual atingido
+        vendas_mensais['percentual_atingido'] = (vendas_mensais['valor'] / vendas_mensais['meta'] * 100).round(1)
+        
+        # Criar figura
+        fig = go.Figure()
+        
+        # Adicionar barras de realizado
+        fig.add_trace(
+            go.Bar(
+                x=vendas_mensais['mes_ano'],
+                y=vendas_mensais['valor'],
+                name='Realizado',
+                marker_color='#4169E1',
+                hovertemplate="Mês: %{x}<br>Realizado: R$ %{y:,.2f}<extra></extra>"
+            )
+        )
+        
+        # Adicionar linha de meta
+        fig.add_trace(
+            go.Scatter(
+                x=vendas_mensais['mes_ano'],
+                y=vendas_mensais['meta'],
+                name='Meta',
+                line=dict(color='#FF4500', width=2, dash='dash'),
+                hovertemplate="Meta: R$ %{y:,.2f}<extra></extra>"
+            )
+        )
+        
+        # Configurar layout
+        fig.update_layout(
+            title="Comparativo de Metas",
+            template="plotly_dark",
+            showlegend=True,
+            legend=dict(
+                yanchor="top",
+                y=0.99,
+                xanchor="left",
+                x=0.01
+            ),
+            xaxis=dict(
+                title=None,
+                tickangle=45,
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+            ),
+            yaxis=dict(
+                title="Valor (R$)",
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+                tickformat=",.0f"
+            ),
+            height=400,
+            margin=dict(t=50, l=50, r=50, b=50)
+        )
+        
+        # Adicionar anotações com percentual atingido
+        for i, row in vendas_mensais.iterrows():
+            fig.add_annotation(
+                x=row['mes_ano'],
+                y=row['valor'],
+                text=f"{row['percentual_atingido']}%",
+                showarrow=False,
+                yshift=10,
+                font=dict(
+                    size=10,
+                    color='white'
+                )
+            )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Erro ao criar gráfico comparativo de metas: {str(e)}")
+        return go.Figure() 

@@ -1,7 +1,14 @@
 ﻿import streamlit as st
 from src.utils.menu import show_menu
 from src.services.api_service import carregar_dados_faturamento
-from utils.formatters import formatar_moeda, calcular_metricas_individuais, calcular_tendencia, criar_container_kpi, calcular_variacao_periodo
+from utils.formatters import (
+    formatar_moeda,
+    calcular_metricas_individuais,
+    calcular_tendencia,
+    criar_container_kpi,
+    calcular_variacao_periodo,
+    gerar_insights_vendedor
+)
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -11,7 +18,11 @@ from dashboards_comercial.visualizations_vendedores import (
     criar_grafico_evolucao_vendas,
     criar_grafico_categorias,
     criar_indicadores_vendedor,
-    criar_expander_info_graficos
+    criar_expander_info_graficos,
+    criar_kpis_tendencia,
+    criar_grafico_tendencia_vendas,
+    criar_grafico_sazonalidade,
+    criar_grafico_comparativo_metas
 )
 
 # Configuração inicial da página
@@ -339,6 +350,38 @@ def show_vendedores():
                 
                 except Exception as e:
                     st.error(f"Erro ao processar dados do vendedor: {str(e)}")
+    
+        with tab3:  # Tendências e Projeções
+            st.markdown("### 📈 Tendências e Projeções")
+            
+            # KPIs de Tendência
+            criar_kpis_tendencia(df_filtrado, vendedor_selecionado)
+            
+            # Gráficos em duas colunas
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.plotly_chart(
+                    criar_grafico_tendencia_vendas(df_filtrado, vendedor_selecionado),
+                    use_container_width=True
+                )
+                
+                st.plotly_chart(
+                    criar_grafico_comparativo_metas(df_filtrado, vendedor_selecionado),
+                    use_container_width=True
+                )
+            
+            with col2:
+                st.plotly_chart(
+                    criar_grafico_sazonalidade(df_filtrado, vendedor_selecionado),
+                    use_container_width=True
+                )
+            
+            # Insights automáticos
+            with st.expander("💡 Insights e Recomendações"):
+                insights = gerar_insights_vendedor(df_filtrado, vendedor_selecionado)
+                for insight in insights:
+                    st.markdown(f"• {insight}")
     
     except Exception as e:
         st.error(f"Erro ao carregar o dashboard: {str(e)}")
