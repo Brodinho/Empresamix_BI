@@ -77,10 +77,16 @@ def calcular_metricas_vendedor(df):
     # Quantidade de vendas
     metricas['qtd_vendas'] = df.groupby('vendedor').size()
     
-    # Resetar o índice para transformar 'vendedor' em uma coluna
+    # Resetar o índice
     metricas = metricas.reset_index()
     
     return metricas
+
+def calcular_valores_cards(df_filtrado):
+    """Calcula os valores para os cards com comparação ao período anterior"""
+    # Implementar lógica de comparação com período anterior aqui
+    # ... código para cálculo dos valores dos cards ...
+    pass
 
 def show_vendedores():
     try:
@@ -90,6 +96,56 @@ def show_vendedores():
             return
 
         st.title("Dashboard de Vendedores")
+        
+        # Criar filtros de data
+        col_filtros1, col_filtros2 = st.columns(2)
+        
+        with col_filtros1:
+            # Extrair anos únicos do DataFrame
+            anos_disponiveis = sorted(df['data'].dt.year.unique())
+            opcao_todos_anos = "Todos os Anos"
+            
+            anos_opcoes = [opcao_todos_anos] + anos_disponiveis
+            anos_selecionados = st.selectbox(
+                "Selecione o(s) ano(s):",
+                options=anos_opcoes,
+                index=0  # "Todos os Anos" como padrão
+            )
+            
+            # Converter seleção para lista de anos
+            anos_para_filtro = anos_disponiveis if anos_selecionados == opcao_todos_anos else [anos_selecionados]
+        
+        with col_filtros2:
+            # Lista de meses em português
+            meses = {
+                0: 'Todos os Meses',
+                1: 'Janeiro', 2: 'Fevereiro', 3: 'Março',
+                4: 'Abril', 5: 'Maio', 6: 'Junho',
+                7: 'Julho', 8: 'Agosto', 9: 'Setembro',
+                10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+            }
+            
+            mes_selecionado = st.selectbox(
+                "Selecione o(s) mês(es):",
+                options=list(meses.keys()),
+                format_func=lambda x: meses[x],
+                index=0  # "Todos os Meses" como padrão
+            )
+            
+            # Converter seleção para lista de meses
+            meses_para_filtro = list(range(1, 13)) if mes_selecionado == 0 else [mes_selecionado]
+        
+        # Aplicar filtros
+        mask = (df['data'].dt.year.isin(anos_para_filtro)) & \
+               (df['data'].dt.month.isin(meses_para_filtro))
+        df_filtrado = df[mask]
+        
+        if df_filtrado.empty:
+            st.warning("Nenhum dado encontrado para os filtros selecionados.")
+            return
+            
+        # Calcular métricas com dados filtrados
+        metricas = calcular_metricas_vendedor(df_filtrado)
         
         tab1, tab2, tab3 = st.tabs([
             "📊 Performance Geral",
@@ -134,9 +190,6 @@ def show_vendedores():
             st.markdown("### 📈 Análise de Performance")
             
             col1, col2 = st.columns(2)
-            
-            # Calcular métricas uma única vez
-            metricas = calcular_metricas_vendedor(df)
             
             with col1:
                 fig_top = criar_grafico_top_vendedores(metricas)
