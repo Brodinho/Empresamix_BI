@@ -10,7 +10,8 @@ from dashboards_comercial.visualizations_vendedores import (
     criar_treemap_vendas,
     criar_grafico_evolucao_vendas,
     criar_grafico_categorias,
-    criar_indicadores_vendedor
+    criar_indicadores_vendedor,
+    criar_expander_info_graficos
 )
 
 # Configuração inicial da página
@@ -310,7 +311,13 @@ def show_vendedores():
                             unsafe_allow_html=True
                         )
                     
-                    # Espaço entre os indicadores e os gráficos
+                    # Espaço entre os indicadores e o expander
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    
+                    # Expander com informações sobre os gráficos
+                    criar_expander_info_graficos()
+                    
+                    # Espaço entre o expander e os gráficos
                     st.markdown("<br>", unsafe_allow_html=True)
                     
                     # Gráficos em duas colunas

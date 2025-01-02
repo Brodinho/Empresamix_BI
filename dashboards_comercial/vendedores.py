@@ -9,46 +9,35 @@ def render_vendedores_dashboard(df_filtrado):
     """
     st.title("Análise de Vendedores")
     
-    # Filtro de Anos
-    anos_disponiveis = sorted(df_filtrado['data'].dt.year.unique(), reverse=True)
-    anos_selecionados = st.multiselect(
-        "Selecione o(s) ano(s):",
-        anos_disponiveis,
-        default=anos_disponiveis[:5],
-        key="vendedores_anos_select"
-    )
+    # Filtros de anos e meses
+    # ... código dos filtros ...
+
+    # Botões de navegação
+    st.write("📊 Performance Geral    🎯 Análise Individual    📈 Tendências e Projeções")
+
+    # Conteúdo da Análise Individual
+    st.header("🎯 Análise Individual do Vendedor")
     
-    # Aplicar filtro de anos
-    df_anos = df_filtrado[df_filtrado['data'].dt.year.isin(anos_selecionados)]
+    # Seleção do vendedor
+    vendedor = st.selectbox("Selecione um vendedor:", lista_vendedores)
     
-    # Criação das abas
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Visão Geral", 
-        "👤 Performance Individual", 
-        "📈 Análise Temporal",
-        "🗺️ Análise Geográfica",
-        "🏷️ Produtos e Categorias"
-    ])
+    # Cards com métricas
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        mostrar_card_faturamento(metricas)
+    with col2:
+        mostrar_card_ticket_medio(metricas)
+    with col3:
+        mostrar_card_total_vendas(metricas)
+    with col4:
+        mostrar_card_total_clientes(metricas)
+        
+    # Expander com informações sobre os gráficos
+    criar_expander_info_graficos()
     
-    # Conteúdo das abas
-    with tab1:
-        st.header("Visão Geral")
-        # Criar gráfico de Top 5 Vendedores
-        fig_vendedores = criar_grafico_vendedores(df_anos)
-        st.plotly_chart(fig_vendedores, use_container_width=True, key="plot_vendedores")
-    
-    with tab2:
-        st.header("Performance Individual")
-        st.info("Em desenvolvimento: Métricas individuais dos vendedores")
-    
-    with tab3:
-        st.header("Análise Temporal")
-        st.info("Em desenvolvimento: Análise de tendências e sazonalidade")
-    
-    with tab4:
-        st.header("Análise Geográfica")
-        st.info("Em desenvolvimento: Distribuição geográfica das vendas")
-    
-    with tab5:
-        st.header("Produtos e Categorias")
-        st.info("Em desenvolvimento: Análise de produtos e categorias") 
+    # Gráficos
+    col_graf1, col_graf2 = st.columns(2)
+    with col_graf1:
+        st.plotly_chart(criar_grafico_evolucao_vendas(df_anos, vendedor))
+    with col_graf2:
+        st.plotly_chart(criar_grafico_categorias(df_anos, vendedor)) 

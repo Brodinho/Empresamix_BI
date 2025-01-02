@@ -5,6 +5,7 @@ from utils.formatters import formatar_moeda
 import math
 from plotly.subplots import make_subplots
 from typing import Dict, Any
+import streamlit as st
 
 def criar_grafico_top_vendedores(df_metricas: pd.DataFrame) -> go.Figure:
     """
@@ -291,4 +292,47 @@ def criar_indicadores_vendedor(metricas: Dict[str, Any]) -> go.Figure:
         
     except Exception as e:
         print(f"Erro ao criar indicadores: {str(e)}")
-        return go.Figure() 
+        return go.Figure()
+
+def criar_expander_info_graficos() -> None:
+    """
+    Cria um expander com informações sobre como interpretar os gráficos
+    de Evolução de Vendas e Distribuição por Categoria
+    """
+    with st.expander("ℹ️ Como interpretar os gráficos"):
+        st.markdown("""
+        ### 📊 Gráfico de Evolução de Vendas
+        
+        Este gráfico apresenta duas informações importantes:
+        - **Linha Azul** 📈 : Representa o faturamento mensal do vendedor
+        - **Linha Verde Pontilhada** 📉 : Indica a quantidade de vendas realizadas
+        
+        **Como interpretar:**
+        - O eixo Y esquerdo mostra os valores de faturamento em milhões (R$)
+        - O eixo Y direito apresenta a quantidade de vendas
+        - O eixo X mostra a evolução temporal (mês/ano)
+        - Passe o mouse sobre as linhas para ver os valores exatos
+        
+        ---
+        
+        ### 📊 Gráfico de Distribuição por Categoria
+        
+        Este gráfico mostra a distribuição do faturamento por categoria de produtos:
+        - As barras são ordenadas do maior para o menor valor
+        - Cada barra mostra:
+            - Nome da categoria
+            - Percentual sobre o total (%)
+            - Valor absoluto (R$)
+        
+        **Como interpretar:**
+        - O eixo X mostra o faturamento em milhões (R$)
+        - As categorias são apresentadas no eixo Y
+        - Os valores dentro das barras mostram o percentual e o valor total
+        """)
+        
+        st.info("""
+        💡 **Dica:** Para uma análise mais detalhada, você pode:
+        - Passar o mouse sobre os elementos para ver informações detalhadas
+        - Clicar na legenda para mostrar/ocultar elementos
+        - Usar os botões de zoom e download no canto superior direito dos gráficos
+        """) 
