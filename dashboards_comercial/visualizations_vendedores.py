@@ -91,44 +91,84 @@ def criar_grafico_evolucao_vendas(df: pd.DataFrame, vendedor: str) -> go.Figure:
     try:
         # Agrupar dados por mês
         df_vendedor = df[df['vendedor'] == vendedor].copy()
-        df_vendedor['mes_ano'] = df_vendedor['data'].dt.strftime('%Y-%m')
+        df_vendedor['mes_ano'] = df_vendedor['data'].dt.strftime('%m/%Y')
         dados_mensais = df_vendedor.groupby('mes_ano').agg({
             'valor': 'sum',
-            'data': 'count'
+            'sequencial': 'count'
         }).reset_index()
+        
+        # Formatar os valores monetários para o hover
+        dados_mensais['valor_formatado'] = dados_mensais['valor'].apply(lambda x: f"R$ {x:_.2f}".replace(".", ",").replace("_", "."))
+        
+        # Calcular o valor máximo para definir o range do eixo y
+        max_valor = dados_mensais['valor'].max()
+        max_milhoes = math.ceil(max_valor / 10_000_000) * 10
         
         # Criar figura com dois eixos Y
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         
-        # Adicionar linha de faturamento
+        # Adicionar linha de quantidade de vendas (agora como secundário)
+        fig.add_trace(
+            go.Scatter(
+                x=dados_mensais['mes_ano'],
+                y=dados_mensais['sequencial'],
+                name="Qtd. Vendas",
+                line=dict(color="#32CD32", width=3, dash='dot'),
+                hovertemplate="Vendas: %{y}<extra></extra>"
+            ),
+            secondary_y=True
+        )
+        
+        # Adicionar linha de faturamento (agora como primário)
         fig.add_trace(
             go.Scatter(
                 x=dados_mensais['mes_ano'],
                 y=dados_mensais['valor'],
                 name="Faturamento",
                 line=dict(color="#4169E1", width=3),
-                hovertemplate="Faturamento: %{y:,.2f}<br>Mês: %{x}<extra></extra>"
+                text=dados_mensais['valor_formatado'],
+                hovertemplate="Faturamento: %{text}<extra></extra>"
             ),
             secondary_y=False
         )
         
-        # Adicionar linha de quantidade de vendas
-        fig.add_trace(
-            go.Scatter(
-                x=dados_mensais['mes_ano'],
-                y=dados_mensais['data'],
-                name="Qtd. Vendas",
-                line=dict(color="#32CD32", width=3, dash='dot'),
-                hovertemplate="Vendas: %{y}<br>Mês: %{x}<extra></extra>"
-            ),
-            secondary_y=True
-        )
-        
+        # Configurar layout
         fig.update_layout(
             title=f"Evolução de Vendas - {vendedor}",
             template="plotly_dark",
             height=400,
-            hovermode="x unified"
+            hovermode="x unified",
+            hoverlabel=dict(
+                bgcolor="#1E1E1E"
+            ),
+            xaxis=dict(
+                tickmode='auto',
+                nticks=12,
+                tickangle=45
+            )
+        )
+        
+        # Configurar eixo Y primário (faturamento)
+        fig.update_yaxes(
+            title="Faturamento",
+            tickmode='array',
+            tickvals=[i * 10_000_000 for i in range(0, max_milhoes + 1, 10)],
+            ticktext=[f'{i} Milhões' if i > 0 else '0' for i in range(0, max_milhoes + 1, 10)],
+            tickangle=0,
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            zeroline=True,
+            zerolinewidth=1,
+            zerolinecolor='rgba(128, 128, 128, 0.2)',
+            secondary_y=False
+        )
+        
+        # Configurar eixo Y secundário (quantidade de vendas)
+        fig.update_yaxes(
+            title="Quantidade de Vendas",
+            showgrid=False,
+            secondary_y=True
         )
         
         return fig
@@ -144,7 +184,7 @@ def criar_grafico_categorias(df: pd.DataFrame, vendedor: str) -> go.Figure:
         df_vendedor = df[df['vendedor'] == vendedor]
         dados_categoria = df_vendedor.groupby('categoria').agg({
             'valor': 'sum',
-            'id_venda': 'count'
+            'sequencial': 'count'
         }).reset_index()
         
         fig = go.Figure()
@@ -154,7 +194,7 @@ def criar_grafico_categorias(df: pd.DataFrame, vendedor: str) -> go.Figure:
             hole=0.6,
             textinfo='label+percent',
             hovertemplate="Categoria: %{label}<br>" +
-                         "Valor: " + formatar_moeda("%{value:,.2f}") + "<br>" +
+                         "Valor: R$ %{value:,.2f}<br>".replace(".", "X").replace(",", ".").replace("X", ",") +
                          "Percentual: %{percent}<extra></extra>"
         ))
         
