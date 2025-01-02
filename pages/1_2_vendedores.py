@@ -5,6 +5,10 @@ from utils.formatters import formatar_moeda
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+from dashboards_comercial.visualizations_vendedores import (
+    criar_grafico_top_vendedores,
+    criar_treemap_vendas
+)
 
 # Configuração inicial da página
 st.set_page_config(page_title="Vendedores", page_icon="👥", layout="wide")
@@ -62,7 +66,7 @@ def criar_container_kpi(titulo, valor, variacao, cor_variacao="#4CAF50"):
 
 def calcular_metricas_vendedor(df):
     """Calcula métricas principais por vendedor"""
-    metricas = {}
+    metricas = pd.DataFrame()
     
     # Faturamento total
     metricas['faturamento_total'] = df.groupby('vendedor')['valor'].sum()
@@ -73,12 +77,10 @@ def calcular_metricas_vendedor(df):
     # Quantidade de vendas
     metricas['qtd_vendas'] = df.groupby('vendedor').size()
     
-    # Taxa de conversão (se houver dados de propostas)
-    if 'status' in df.columns:
-        metricas['taxa_conversao'] = df[df['status'] == 'Fechado'].groupby('vendedor').size() / \
-                                   df.groupby('vendedor').size() * 100
+    # Resetar o índice para transformar 'vendedor' em uma coluna
+    metricas = metricas.reset_index()
     
-    return pd.DataFrame(metricas)
+    return metricas
 
 def show_vendedores():
     try:
@@ -131,52 +133,26 @@ def show_vendedores():
             # Análise de Performance
             st.markdown("### 📈 Análise de Performance")
             
-            # Gráficos em colunas
             col1, col2 = st.columns(2)
             
+            # Calcular métricas uma única vez
+            metricas = calcular_metricas_vendedor(df)
+            
             with col1:
-                # Top 5 Vendedores
-                metricas = calcular_metricas_vendedor(df)
-                top_5_vendedores = metricas.sort_values('faturamento_total', ascending=True).tail(5)
-                
-                fig_top = px.bar(
-                    top_5_vendedores,
-                    x='faturamento_total',
-                    y=top_5_vendedores.index,
-                    title="Top 5 Vendedores por Faturamento",
-                    template="plotly_dark",
-                    orientation='h'
+                fig_top = criar_grafico_top_vendedores(metricas)
+                st.plotly_chart(
+                    fig_top, 
+                    use_container_width=True,
+                    key="grafico_top_vendedores"
                 )
-                
-                # Personalização do layout
-                fig_top.update_layout(
-                    xaxis_title=None,
-                    yaxis_title=None,
-                    showlegend=False,
-                    xaxis=dict(
-                        tickmode='array',
-                        tickvals=[i * 10000000 for i in range(0, int(metricas['faturamento_total'].max()/10000000) + 1)],
-                        ticktext=[f'{i*10:,} Milhões'.replace(',', '.') for i in range(0, int(metricas['faturamento_total'].max()/10000000) + 1)],
-                        tickangle=0
-                    ),
-                    yaxis=dict(
-                        tickangle=0
-                    ),
-                    height=400
-                )
-                
-                st.plotly_chart(fig_top, use_container_width=True)
             
             with col2:
-                # Distribuição de Vendas
-                fig_dist = px.pie(
-                    metricas,
-                    values='qtd_vendas',
-                    names=metricas.index,
-                    title="Distribuição de Vendas por Vendedor",
-                    template="plotly_dark"
+                fig_dist = criar_treemap_vendas(metricas)
+                st.plotly_chart(
+                    fig_dist, 
+                    use_container_width=True,
+                    key="treemap_vendas"
                 )
-                st.plotly_chart(fig_dist, use_container_width=True)
     
     except Exception as e:
         st.error(f"Erro ao carregar o dashboard: {str(e)}")
