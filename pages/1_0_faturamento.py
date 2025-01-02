@@ -10,7 +10,8 @@ st.set_page_config(
 )
 
 # Definir página atual
-st.session_state['current_page'] = '/0_faturamento'
+if 'current_page' not in st.session_state:
+    st.session_state['current_page'] = '/0_faturamento'
 
 # Mostrar menu
 with st.sidebar:

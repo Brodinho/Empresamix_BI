@@ -43,6 +43,8 @@ if "authenticated" not in st.session_state:
 if "df_filtrado" not in st.session_state:
     st.session_state.df_filtrado = None
 
+st.session_state['current_page'] = '/'
+
 def carregar_dados():
     """Função para carregar/atualizar dados"""
     with st.spinner("Carregando dados..."):
