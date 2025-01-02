@@ -1,5 +1,6 @@
 import locale
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
+import pandas as pd
 
 # Configurar locale para formatação de moeda em português do Brasil
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
@@ -136,4 +137,190 @@ NOMES_ESTADOS = {
     'SE': 'Sergipe',
     'SP': 'São Paulo',
     'TO': 'Tocantins'
-} 
+}
+
+def calcular_metricas_individuais(df: pd.DataFrame, vendedor: str) -> Dict[str, Any]:
+    """Calcula métricas individuais para um vendedor específico"""
+    try:
+        dados_vendedor = df[df['vendedor'] == vendedor]
+        
+        metricas = {
+            'total_vendas': len(dados_vendedor),
+            'faturamento_total': dados_vendedor['valor'].sum(),
+            'ticket_medio': dados_vendedor['valor'].mean(),
+            'maior_venda': dados_vendedor['valor'].max(),
+            'menor_venda': dados_vendedor['valor'].min(),
+            'total_clientes': dados_vendedor['codcli'].nunique(),  # Usando código do cliente
+            'total_categorias': dados_vendedor['categoria'].nunique() if 'categoria' in dados_vendedor.columns else 0
+        }
+        
+        return metricas
+        
+    except Exception as e:
+        print(f"Erro ao calcular métricas: {str(e)}")
+        return {
+            'total_vendas': 0,
+            'faturamento_total': 0,
+            'ticket_medio': 0,
+            'maior_venda': 0,
+            'menor_venda': 0,
+            'total_clientes': 0,
+            'total_categorias': 0
+        }
+
+def calcular_tendencia(valores: pd.Series) -> str:
+    """Calcula a tendência de uma série temporal"""
+    if len(valores) < 2:
+        return "neutro"
+    
+    primeira_metade = valores[:len(valores)//2].mean()
+    segunda_metade = valores[len(valores)//2:].mean()
+    
+    if segunda_metade > primeira_metade * 1.05:
+        return "crescimento"
+    elif segunda_metade < primeira_metade * 0.95:
+        return "queda"
+    else:
+        return "estavel" 
+
+def criar_container_kpi(titulo: str, valor: str, variacao: str) -> str:
+    """
+    Cria um container HTML estilizado para KPI
+    
+    Args:
+        titulo (str): Título do indicador
+        valor (str): Valor principal do indicador
+        variacao (str): Texto de variação (ex: "↑ 15% vs mês anterior")
+    
+    Returns:
+        str: String HTML formatada do container
+    """
+    # Definição das cores com base na variação
+    cor_variacao = '#4CAF50' if '↑' in variacao else \
+                   '#FF5252' if '↓' in variacao else \
+                   '#FFA500'  # Cor laranja para valores que se mantiveram
+    
+    return f"""
+        <div style="
+            background-color: #1E1E1E;
+            border-radius: 12px;
+            padding: 20px;
+            height: 140px;
+            border: 1px solid #444;
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4),
+                       inset 0 -1px 1px rgba(255, 255, 255, 0.1),
+                       inset 0 1px 1px rgba(0, 0, 0, 0.2);
+            margin: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            transform: translateY(0);
+            transition: all 0.2s ease;
+        ">
+            <div style="
+                color: #FFF;
+                font-size: 1.1em;
+                font-weight: 500;
+                margin-bottom: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            ">{titulo}</div>
+            <div style="
+                color: white;
+                font-size: 1.8em;
+                font-weight: bold;
+                margin-bottom: 12px;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            ">{valor}</div>
+            <div style="
+                font-size: 0.9em;
+                color: {cor_variacao};
+                font-weight: 500;
+            ">{variacao}</div>
+        </div>
+    """ 
+
+def calcular_variacao_periodo(
+    df: pd.DataFrame,
+    vendedor: str,
+    metrica: str,
+    data_atual: pd.Timestamp
+) -> Tuple[float, str]:
+    """
+    Calcula a variação percentual de uma métrica entre o período atual e o anterior
+    
+    Args:
+        df: DataFrame com os dados
+        vendedor: Nome do vendedor
+        metrica: Nome da métrica ('valor', 'qtd_vendas', 'clientes')
+        data_atual: Data de referência para o cálculo
+        
+    Returns:
+        Tuple[float, str]: (variação percentual, texto formatado para exibição)
+    """
+    try:
+        # Filtrar dados do vendedor
+        dados_vendedor = df[df['vendedor'] == vendedor].copy()
+        
+        # Determinar período atual e anterior
+        mes_atual = data_atual.month
+        ano_atual = data_atual.year
+        
+        # Calcular data do mês anterior
+        if mes_atual == 1:
+            mes_anterior = 12
+            ano_anterior = ano_atual - 1
+        else:
+            mes_anterior = mes_atual - 1
+            ano_anterior = ano_atual
+            
+        # Filtrar dados por período
+        dados_mes_atual = dados_vendedor[
+            (dados_vendedor['data'].dt.month == mes_atual) & 
+            (dados_vendedor['data'].dt.year == ano_atual)
+        ]
+        
+        dados_mes_anterior = dados_vendedor[
+            (dados_vendedor['data'].dt.month == mes_anterior) & 
+            (dados_vendedor['data'].dt.year == ano_anterior)
+        ]
+        
+        # Calcular valores conforme a métrica
+        if metrica == 'valor':
+            valor_atual = dados_mes_atual['valor'].sum()
+            valor_anterior = dados_mes_anterior['valor'].sum()
+        elif metrica == 'qtd_vendas':
+            valor_atual = len(dados_mes_atual)
+            valor_anterior = len(dados_mes_anterior)
+        elif metrica == 'ticket_medio':
+            valor_atual = dados_mes_atual['valor'].mean()
+            valor_anterior = dados_mes_anterior['valor'].mean()
+        elif metrica == 'clientes':
+            valor_atual = dados_mes_atual['codcli'].nunique()
+            valor_anterior = dados_mes_anterior['codcli'].nunique()
+        else:
+            return 0.0, "Sem variação"
+            
+        # Calcular variação percentual
+        if valor_anterior == 0:
+            if valor_atual > 0:
+                return 100.0, "↑ Novo"
+            return 0.0, "Sem variação"
+            
+        variacao = ((valor_atual - valor_anterior) / valor_anterior) * 100
+        
+        # Formatar texto de retorno
+        if variacao > 0:
+            texto = f"↑ {abs(variacao):.1f}% vs mês anterior"
+        elif variacao < 0:
+            texto = f"↓ {abs(variacao):.1f}% vs mês anterior"
+        else:
+            texto = "Mesma quantidade mês anterior"
+            
+        return variacao, texto
+        
+    except Exception as e:
+        print(f"Erro ao calcular variação: {str(e)}")
+        return 0.0, "Sem variação" 
