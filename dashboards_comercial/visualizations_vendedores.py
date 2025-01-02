@@ -178,7 +178,7 @@ def criar_grafico_evolucao_vendas(df: pd.DataFrame, vendedor: str) -> go.Figure:
 
 def criar_grafico_categorias(df: pd.DataFrame, vendedor: str) -> go.Figure:
     """
-    Cria um gráfico de rosca mostrando a distribuição de vendas por categoria
+    Cria um gráfico de barras horizontais mostrando a distribuição de vendas por categoria
     """
     try:
         df_vendedor = df[df['vendedor'] == vendedor]
@@ -187,21 +187,53 @@ def criar_grafico_categorias(df: pd.DataFrame, vendedor: str) -> go.Figure:
             'sequencial': 'count'
         }).reset_index()
         
+        # Ordenar por valor e calcular percentuais
+        dados_categoria = dados_categoria.sort_values('valor', ascending=True)
+        total_valor = dados_categoria['valor'].sum()
+        dados_categoria['percentual'] = dados_categoria['valor'] / total_valor * 100
+        
+        # Formatar valores para exibição
+        dados_categoria['valor_formatado'] = dados_categoria['valor'].apply(
+            lambda x: f"R$ {x:_.2f}".replace(".", ",").replace("_", ".")
+        )
+        dados_categoria['percentual_formatado'] = dados_categoria['percentual'].apply(
+            lambda x: f"{x:.1f}%"
+        )
+        
         fig = go.Figure()
-        fig.add_trace(go.Pie(
-            labels=dados_categoria['categoria'],
-            values=dados_categoria['valor'],
-            hole=0.6,
-            textinfo='label+percent',
-            hovertemplate="Categoria: %{label}<br>" +
-                         "Valor: R$ %{value:,.2f}<br>".replace(".", "X").replace(",", ".").replace("X", ",") +
-                         "Percentual: %{percent}<extra></extra>"
+        fig.add_trace(go.Bar(
+            y=dados_categoria['categoria'],
+            x=dados_categoria['valor'],
+            orientation='h',
+            text=dados_categoria.apply(
+                lambda row: f"{row['percentual_formatado']} ({row['valor_formatado']})", 
+                axis=1
+            ),
+            textposition='auto',
+            hovertemplate="Categoria: %{y}<br>" +
+                         "Valor: %{text}<br>" +
+                         "<extra></extra>",
+            marker_color='#4169E1'
         ))
         
         fig.update_layout(
-            title="Distribuição por Categoria",
+            title=f"Distribuição por Categoria - {vendedor}",
             template="plotly_dark",
-            height=400
+            height=400,
+            showlegend=False,
+            xaxis_title="Faturamento",
+            yaxis_title=None,
+            margin=dict(l=200, r=20, t=30, b=20)
+        )
+        
+        # Formatar eixo X para valores em milhões
+        max_valor = dados_categoria['valor'].max()
+        max_milhoes = math.ceil(max_valor / 1_000_000)
+        
+        fig.update_xaxes(
+            tickmode='array',
+            tickvals=[i * 1_000_000 for i in range(0, max_milhoes + 1)],
+            ticktext=[f'{i} Mi' for i in range(0, max_milhoes + 1)]
         )
         
         return fig
