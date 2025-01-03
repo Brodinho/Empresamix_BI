@@ -10,6 +10,13 @@ import pandas as pd
 # Carrega variáveis de ambiente
 load_dotenv()
 
+# Inicialização do session_state
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
+if 'df_filtrado' not in st.session_state:
+    st.session_state.df_filtrado = None
+
 # Configuração da página
 st.set_page_config(
     page_title="EmpresaMix - BI",
@@ -33,17 +40,31 @@ css = """
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# Verifica autenticação
-check_authentication()
-
-# Inicialização do session_state
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if "df_filtrado" not in st.session_state:
-    st.session_state.df_filtrado = None
-
-st.session_state['current_page'] = '/'
+# MANTENHA APENAS ESTE BLOCO DE LOGIN
+if not st.session_state.authenticated:
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        with st.form(key="login_form_unique"):
+            st.text_input("Usuário", key="username")
+            st.text_input("Senha", type="password", key="password")
+            submit = st.form_submit_button("Entrar")
+            
+            if submit:
+                username = st.session_state.username
+                password = st.session_state.password
+                
+                # Debug: mostrar valores recebidos
+                st.write(f"Username digitado: {username}")
+                st.write(f"Password digitado: {password}")
+                
+                # Validação mais explícita
+                if username.strip() == "admin" and password.strip() == "admin":
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error(f"Usuário ou senha inválidos! Verifique suas credenciais.")
+                    st.error(f"Esperado: admin/admin")
+                    st.error(f"Recebido: {username}/{password}")
 
 def carregar_dados():
     """Função para carregar/atualizar dados"""
@@ -55,7 +76,7 @@ def carregar_dados():
         except Exception as e:
             st.error(f"Erro ao carregar dados: {str(e)}")
 
-# Interface principal
+# Interface principal (após login)
 if st.session_state.authenticated:
     st.title("EmpresaMix - Dashboard")
 
@@ -114,5 +135,3 @@ if st.session_state.authenticated:
             """,
             unsafe_allow_html=True
         )
-else:
-    st.warning("Por favor, faça login para acessar o dashboard.")

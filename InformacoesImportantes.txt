@@ -1,0 +1,6 @@
+Para adicionar uma logo:
+Criar uma pasta assets no diretório raiz do seu projeto
+Colocar a imagem de logo nesta pasta
+Descomentar a linha st.image() no arquivo home.py e ajustar o caminho para 
+algo como:
+st.image(assets/logo.png)
