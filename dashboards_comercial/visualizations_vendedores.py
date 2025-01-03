@@ -537,24 +537,20 @@ def criar_grafico_sazonalidade_geral(df: pd.DataFrame) -> go.Figure:
             showscale=True,
             colorbar=dict(
                 title="Valor em Milhões",
-                titleside="right",
-                ticks="outside",
                 tickmode="array",
                 tickvals=valores_escala,
                 ticktext=[f"R$ {v/1_000_000:.1f}M" for v in valores_escala],
-                tickangle=0,
                 tickfont=dict(
                     size=10,
-                    color='white'
+                    color="white"
                 ),
-                tickwidth=2,
-                ticklen=8,
+                x=1.02,
+                y=0.5,
+                len=0.9,
                 thickness=15,
                 outlinewidth=1,
-                outlinecolor='white',
-                x=1.15,  # Posição horizontal ajustada
-                y=0.5,   # Centralizado verticalmente
-                len=1    # Comprimento total
+                outlinecolor="white",
+                ticklabelposition="outside right"
             ),
             hoverongaps=False,
             hovertemplate="Ano: %{y}<br>Mês: %{x}<br>Valor: %{customdata}<extra></extra>",
@@ -568,7 +564,7 @@ def criar_grafico_sazonalidade_geral(df: pd.DataFrame) -> go.Figure:
             xaxis_title=None,
             yaxis_title=None,
             height=400,
-            margin=dict(t=50, l=50, r=150, b=50),  # Margem direita aumentada ainda mais
+            margin=dict(t=50, l=50, r=80, b=50),
             yaxis=dict(
                 tickmode='array',
                 ticktext=[str(int(ano)) for ano in matriz_vendas.index],
@@ -582,9 +578,6 @@ def criar_grafico_sazonalidade_geral(df: pd.DataFrame) -> go.Figure:
         
     except Exception as e:
         print(f"\nERRO na criação do gráfico de sazonalidade geral: {str(e)}")
-        print(f"Tipo do erro: {type(e)}")
-        import traceback
-        print(f"Traceback completo:\n{traceback.format_exc()}")
         return go.Figure()
 
 def criar_grafico_comparativo_metas(df: pd.DataFrame, vendedor: str) -> go.Figure:
