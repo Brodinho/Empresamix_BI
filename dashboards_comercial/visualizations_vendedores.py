@@ -87,92 +87,116 @@ def criar_treemap_vendas(df_metricas: pd.DataFrame) -> go.Figure:
 
 def criar_grafico_evolucao_vendas(df: pd.DataFrame, vendedor: str) -> go.Figure:
     """
-    Cria um gráfico de linha mostrando a evolução das vendas do vendedor
+    Cria gráfico de evolução de vendas do vendedor
     """
     try:
-        # Agrupar dados por mês
+        # Filtrar dados do vendedor
         df_vendedor = df[df['vendedor'] == vendedor].copy()
+        
+        # Agrupar por mês
         df_vendedor['mes_ano'] = df_vendedor['data'].dt.strftime('%m/%Y')
-        dados_mensais = df_vendedor.groupby('mes_ano').agg({
+        vendas_mensais = df_vendedor.groupby('mes_ano').agg({
             'valor': 'sum',
-            'sequencial': 'count'
+            'data': 'first'
         }).reset_index()
         
-        # Formatar os valores monetários para o hover
-        dados_mensais['valor_formatado'] = dados_mensais['valor'].apply(lambda x: f"R$ {x:_.2f}".replace(".", ",").replace("_", "."))
+        # Ordenar por data
+        vendas_mensais = vendas_mensais.sort_values('data')
         
-        # Calcular o valor máximo para definir o range do eixo y
-        max_valor = dados_mensais['valor'].max()
-        max_milhoes = math.ceil(max_valor / 10_000_000) * 10
+        # Contar quantidade de vendas por mês
+        qtd_vendas = df_vendedor.groupby('mes_ano').size().reset_index(name='quantidade')
+        vendas_mensais = vendas_mensais.merge(qtd_vendas, on='mes_ano')
         
-        # Criar figura com dois eixos Y
+        # Determinar o modo de exibição baseado no número de meses com vendas
+        num_meses = len(vendas_mensais)
+        modo_exibicao = 'markers' if num_meses <= 2 else 'lines+markers'
+        
+        # Determinar o valor máximo para definir a escala
+        max_valor = vendas_mensais['valor'].max()
+        max_milhoes = math.ceil(max_valor / 1_000_000)
+        
+        # Criar figura com eixos secundários
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         
-        # Adicionar linha de quantidade de vendas (agora como secundário)
+        # Preparar valores formatados para o hover
+        valores_formatados = [formatar_moeda(valor) for valor in vendas_mensais['valor']]
+        
+        # Adicionar linha/pontos de faturamento
         fig.add_trace(
             go.Scatter(
-                x=dados_mensais['mes_ano'],
-                y=dados_mensais['sequencial'],
-                name="Qtd. Vendas",
-                line=dict(color="#32CD32", width=3, dash='dot'),
-                hovertemplate="Vendas: %{y}<extra></extra>"
+                x=vendas_mensais['mes_ano'],
+                y=vendas_mensais['valor'],
+                name='Faturamento',
+                mode=modo_exibicao,
+                line=dict(color='#4169E1', width=2),
+                marker=dict(
+                    color='#4169E1',
+                    size=8 if num_meses > 2 else 12
+                ),
+                customdata=valores_formatados,  # Dados formatados para o hover
+                hovertemplate="Mês: %{x}<br>Faturamento: %{customdata}<extra></extra>"
+            ),
+            secondary_y=False
+        )
+        
+        # Adicionar linha/pontos de quantidade de vendas
+        fig.add_trace(
+            go.Scatter(
+                x=vendas_mensais['mes_ano'],
+                y=vendas_mensais['quantidade'],
+                name='Qtd. Vendas',
+                mode=modo_exibicao,
+                line=dict(color='#32CD32', width=2, dash='dot'),
+                marker=dict(
+                    color='#32CD32',
+                    size=8 if num_meses > 2 else 12
+                ),
+                hovertemplate="Mês: %{x}<br>Vendas: %{y}<extra></extra>"
             ),
             secondary_y=True
         )
         
-        # Adicionar linha de faturamento (agora como primário)
-        fig.add_trace(
-            go.Scatter(
-                x=dados_mensais['mes_ano'],
-                y=dados_mensais['valor'],
-                name="Faturamento",
-                line=dict(color="#4169E1", width=3),
-                text=dados_mensais['valor_formatado'],
-                hovertemplate="Faturamento: %{text}<extra></extra>"
-            ),
-            secondary_y=False
+        # Atualizar eixos Y
+        fig.update_yaxes(
+            title_text=None,  # Remove o título do eixo Y primário
+            secondary_y=False,
+            tickmode='array',
+            tickvals=[i * 200000 for i in range(math.ceil(max_valor/200000) + 1)],
+            ticktext=[f"{i/5:.1f} Milhão" if i > 0 else "0" for i in range(math.ceil(max_valor/200000) + 1)]
+        )
+        
+        # Atualizar eixo Y secundário (mantém o título)
+        fig.update_yaxes(
+            title_text="Quantidade de Vendas",
+            secondary_y=True
         )
         
         # Configurar layout
         fig.update_layout(
-            title=f"Evolução de Vendas - {vendedor}",
+            title=f"Evolução de Vendas - {vendedor.upper()}",
             template="plotly_dark",
-            height=400,
-            hovermode="x unified",
-            hoverlabel=dict(
-                bgcolor="#1E1E1E"
+            showlegend=True,
+            legend=dict(
+                yanchor="top",
+                y=0.99,
+                xanchor="left",
+                x=0.01
             ),
             xaxis=dict(
-                tickmode='auto',
-                nticks=12,
-                tickangle=45
-            )
-        )
-        
-        # Configurar eixo Y primário (faturamento)
-        fig.update_yaxes(
-            title="Faturamento",
-            tickmode='array',
-            tickvals=[i * 10_000_000 for i in range(0, max_milhoes + 1, 10)],
-            ticktext=[f'{i} Milhões' if i > 0 else '0' for i in range(0, max_milhoes + 1, 10)],
-            tickangle=0,
-            showgrid=True,
-            gridwidth=1,
-            gridcolor='rgba(128, 128, 128, 0.2)',
-            zeroline=True,
-            zerolinewidth=1,
-            zerolinecolor='rgba(128, 128, 128, 0.2)',
-            secondary_y=False
-        )
-        
-        # Configurar eixo Y secundário (quantidade de vendas)
-        fig.update_yaxes(
-            title="Quantidade de Vendas",
-            showgrid=False,
-            secondary_y=True
+                title=None,
+                tickangle=45,
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+            ),
+            height=400,
+            margin=dict(t=50, l=50, r=50, b=50),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
         )
         
         return fig
+        
     except Exception as e:
         print(f"Erro ao criar gráfico de evolução: {str(e)}")
         return go.Figure()
