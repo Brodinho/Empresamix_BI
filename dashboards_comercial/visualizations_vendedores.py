@@ -6,6 +6,7 @@ import math
 from plotly.subplots import make_subplots
 from typing import Dict, Any
 import streamlit as st
+import numpy as np
 
 def criar_grafico_top_vendedores(df_metricas: pd.DataFrame) -> go.Figure:
     """
@@ -489,102 +490,101 @@ def criar_grafico_tendencia_vendas(df: pd.DataFrame, vendedor: str) -> go.Figure
         # Retornar uma figura vazia em caso de erro
         return go.Figure()
 
-def criar_grafico_sazonalidade(df: pd.DataFrame, vendedor: str) -> go.Figure:
+def criar_grafico_sazonalidade_geral(df: pd.DataFrame) -> go.Figure:
     """
-    Cria gráfico de calor mostrando padrões sazonais de vendas
+    Cria um gráfico de calor (heatmap) mostrando a sazonalidade das vendas gerais
     """
     try:
-        # Filtrar dados do vendedor
-        df_vendedor = df[df['vendedor'] == vendedor].copy()
+        df_analise = df.copy()
         
-        if df_vendedor.empty:
-            print("Sem dados para o vendedor selecionado")
-            return go.Figure()
-            
         # Criar colunas de ano e mês
-        df_vendedor['ano'] = df_vendedor['data'].dt.year
-        df_vendedor['mes'] = df_vendedor['data'].dt.month
+        df_analise['ano'] = df_analise['data'].dt.year.astype(int)  # Forçar tipo inteiro
+        df_analise['mes'] = df_analise['data'].dt.month
         
-        # Criar uma matriz completa com todos os meses
-        anos = df_vendedor['ano'].unique()
-        meses = range(1, 13)  # 1 a 12
+        # Agrupar por ano e mês, calculando o total de vendas
+        vendas_mensais = df_analise.groupby(['ano', 'mes'])['valor'].sum().reset_index()
         
-        # Criar DataFrame vazio com todos os meses e anos
-        index = pd.MultiIndex.from_product([anos, meses], names=['ano', 'mes'])
-        vendas_completas = pd.DataFrame(index=index).reset_index()
-        
-        # Agrupar vendas reais
-        vendas_reais = df_vendedor.groupby(['ano', 'mes'])['valor'].sum().reset_index()
-        
-        # Mesclar dados reais com a matriz completa
-        vendas_completas = vendas_completas.merge(
-            vendas_reais, 
-            on=['ano', 'mes'], 
-            how='left'
-        ).fillna(0)
-        
-        # Criar matriz para o heatmap
-        matriz_vendas = pd.pivot_table(
-            vendas_completas,
-            values='valor',
+        # Criar matriz pivô para o heatmap
+        matriz_vendas = vendas_mensais.pivot(
             index='ano',
             columns='mes',
-            aggfunc='sum',
-            fill_value=0
+            values='valor'
         )
         
-        # Normalizar valores para melhor visualização
-        matriz_normalizada = matriz_vendas / 1000  # Valores em milhares
+        # Garantir que todos os meses estejam presentes
+        for mes in range(1, 13):
+            if mes not in matriz_vendas.columns:
+                matriz_vendas[mes] = 0
         
-        # Criar figura
+        # Ordenar as colunas
+        matriz_vendas = matriz_vendas.reindex(columns=range(1, 13))
+        
+        # Calcular valores para a escala
+        valor_min = matriz_vendas.values.min()
+        valor_max = matriz_vendas.values.max()
+        valores_escala = np.linspace(valor_min, valor_max, 6)
+        
+        # Criar o heatmap
         fig = go.Figure(data=go.Heatmap(
-            z=matriz_normalizada.values,
-            x=MESES_ORDEM,  # Usar todos os meses
+            z=matriz_vendas.values,
+            x=[MESES_ORDEM[mes] for mes in matriz_vendas.columns],
             y=matriz_vendas.index,
-            colorscale='Viridis',
+            colorscale=[
+                [0.0, 'rgb(165, 0, 38)'],
+                [0.5, 'rgb(255, 255, 255)'],
+                [1.0, 'rgb(49, 54, 149)']
+            ],
+            showscale=True,
+            colorbar=dict(
+                title="Valor em Milhões",
+                titleside="right",
+                ticks="outside",
+                tickmode="array",
+                tickvals=valores_escala,
+                ticktext=[f"R$ {v/1_000_000:.1f}M" for v in valores_escala],
+                tickangle=0,
+                tickfont=dict(
+                    size=10,
+                    color='white'
+                ),
+                tickwidth=2,
+                ticklen=8,
+                thickness=15,
+                outlinewidth=1,
+                outlinecolor='white',
+                x=1.15,  # Posição horizontal ajustada
+                y=0.5,   # Centralizado verticalmente
+                len=1    # Comprimento total
+            ),
             hoverongaps=False,
-            hovertemplate="Ano: %{y}<br>Mês: %{x}<br>Valor: R$ %{z:.0f}K<extra></extra>"
+            hovertemplate="Ano: %{y}<br>Mês: %{x}<br>Valor: %{customdata}<extra></extra>",
+            customdata=[[formatar_moeda(val) for val in row] for row in matriz_vendas.values]
         ))
         
         # Configurar layout
         fig.update_layout(
-            title="Sazonalidade de Vendas",
+            title="Sazonalidade de Vendas - Visão Geral",
             template="plotly_dark",
-            xaxis=dict(
-                title="Mês",
-                tickangle=45,
-                side='bottom'
-            ),
-            yaxis=dict(
-                title="Ano",
-                tickangle=0
-            ),
+            xaxis_title=None,
+            yaxis_title=None,
             height=400,
-            margin=dict(t=50, l=50, r=50, b=50),
+            margin=dict(t=50, l=50, r=150, b=50),  # Margem direita aumentada ainda mais
+            yaxis=dict(
+                tickmode='array',
+                ticktext=[str(int(ano)) for ano in matriz_vendas.index],
+                tickvals=matriz_vendas.index
+            ),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)'
         )
         
-        # Adicionar anotações apenas para valores significativos
-        for i in range(len(matriz_normalizada.index)):
-            for j in range(len(matriz_normalizada.columns)):
-                valor = matriz_normalizada.iloc[i, j]
-                if valor > 0:
-                    fig.add_annotation(
-                        x=MESES_ORDEM[j],
-                        y=matriz_normalizada.index[i],
-                        text=f"R${valor:.0f}K",
-                        showarrow=False,
-                        font=dict(
-                            size=10,
-                            color='white'
-                        )
-                    )
-        
         return fig
         
     except Exception as e:
-        print(f"Erro ao criar gráfico de sazonalidade: {str(e)}")
+        print(f"\nERRO na criação do gráfico de sazonalidade geral: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        print(f"Traceback completo:\n{traceback.format_exc()}")
         return go.Figure()
 
 def criar_grafico_comparativo_metas(df: pd.DataFrame, vendedor: str) -> go.Figure:
@@ -684,4 +684,59 @@ def criar_grafico_comparativo_metas(df: pd.DataFrame, vendedor: str) -> go.Figur
         
     except Exception as e:
         print(f"Erro ao criar gráfico comparativo de metas: {str(e)}")
-        return go.Figure() 
+        return go.Figure()
+
+def criar_expander_info_tendencias() -> None:
+    """
+    Cria um expander com informações sobre como interpretar os gráficos
+    da aba de Tendências e Projeções
+    """
+    with st.expander("ℹ️ Como interpretar os gráficos"):
+        st.markdown("""
+        ### 📈 Gráfico de Tendência de Vendas
+        
+        Este gráfico mostra a tendência histórica e projeção futura:
+        - **Linha Sólida** 📊 : Representa os dados históricos de vendas
+        - **Linha Pontilhada** 📉 : Mostra a projeção futura baseada na tendência
+        - **Área Sombreada** : Indica o intervalo de confiança da projeção
+        
+        **Como interpretar:**
+        - Observe a direção geral da tendência (crescente, decrescente ou estável)
+        - Compare os valores reais com as projeções anteriores
+        - Use o intervalo de confiança para avaliar a incerteza da projeção
+        
+        ---
+        
+        ### 📊 Gráfico de Sazonalidade
+        
+        Este gráfico destaca os padrões sazonais nas vendas:
+        - **Cores mais Intensas** 🔥 : Indicam períodos de maior volume
+        - **Cores mais Claras** ❄️ : Mostram períodos de menor volume
+        
+        **Como interpretar:**
+        - Identifique os meses com melhor desempenho histórico
+        - Observe padrões que se repetem anualmente
+        - Use essas informações para planejar ações futuras
+        
+        ---
+        
+        ### 📈 Gráfico de Decomposição de Série Temporal
+        
+        Este gráfico separa os componentes das vendas:
+        - **Tendência** ➡️ : Direção geral dos dados ao longo do tempo
+        - **Sazonalidade** 📅 : Padrões que se repetem em intervalos regulares
+        - **Resíduos** 🔍 : Variações não explicadas pelos outros componentes
+        
+        **Como interpretar:**
+        - Analise cada componente separadamente
+        - Identifique a força da sazonalidade
+        - Observe se há tendência clara de crescimento ou queda
+        """)
+        
+        st.info("""
+        💡 **Dica:** Para uma análise mais completa:
+        - Compare diferentes períodos do ano
+        - Considere fatores externos que podem influenciar as projeções
+        - Use os filtros disponíveis para focar em períodos específicos
+        - Observe o intervalo de confiança para avaliar a confiabilidade das projeções
+        """) 

@@ -18,11 +18,12 @@ from dashboards_comercial.visualizations_vendedores import (
     criar_grafico_evolucao_vendas,
     criar_grafico_categorias,
     criar_indicadores_vendedor,
-    criar_expander_info_graficos,
-    criar_kpis_tendencia,
+    criar_grafico_sazonalidade_geral,
     criar_grafico_tendencia_vendas,
-    criar_grafico_sazonalidade,
-    criar_grafico_comparativo_metas
+    criar_grafico_comparativo_metas,
+    criar_expander_info_graficos,
+    criar_expander_info_tendencias,
+    criar_kpis_tendencia
 )
 
 # Configuração inicial da página
@@ -354,8 +355,17 @@ def show_vendedores():
         with tab3:  # Tendências e Projeções
             st.markdown("### 📈 Tendências e Projeções")
             
-            # KPIs de Tendência
+            # KPIs de Tendência primeiro
             criar_kpis_tendencia(df_filtrado, vendedor_selecionado)
+            
+            # Espaço entre os KPIs e o expander
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Agora o expander com informações
+            criar_expander_info_tendencias()
+            
+            # Espaço entre o expander e os gráficos
+            st.markdown("<br>", unsafe_allow_html=True)
             
             # Gráficos em duas colunas
             col1, col2 = st.columns(2)
@@ -373,7 +383,7 @@ def show_vendedores():
             
             with col2:
                 st.plotly_chart(
-                    criar_grafico_sazonalidade(df_filtrado, vendedor_selecionado),
+                    criar_grafico_sazonalidade_geral(df_filtrado),
                     use_container_width=True
                 )
             
